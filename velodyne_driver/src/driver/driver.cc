@@ -16,10 +16,12 @@
 #include <cmath>
 
 #include <ros/ros.h>
+#include <boost/thread/lock_guard.hpp>
 #include <tf/transform_listener.h>
 #include <velodyne_msgs/VelodyneScan.h>
 
 #include "velodyne_driver/driver.h"
+
 
 namespace velodyne_driver
 {
@@ -222,8 +224,14 @@ bool VelodyneDriver::poll(void)
 
   // notify diagnostics that a message has been published, updating
   // its status
-  diag_topic_->tick(scan->header.stamp);
-  diagnostics_.update();
+  {
+      // diagnostics_updater is not thread safe, si it needs to be guarded
+      boost::lock_guard<boost::mutex> guard(diag_mutex_);
+      diag_topic_->tick(scan->header.stamp);
+      diagnostics_.update();
+  }
+
+  //ROS_INFO("publish update pid : 0x%lx", pthread_self());
 
   return true;
 }
@@ -238,8 +246,11 @@ void VelodyneDriver::callback(velodyne_driver::VelodyneNodeConfig &config,
 void VelodyneDriver::diagTimerCallback(const ros::TimerEvent &event)
 {
   (void)event;
+  // diagnostics_updater is not thread safe, si it needs to be guarded
+  boost::lock_guard<boost::mutex> guard(diag_mutex_);
   // Call necessary to provide an error when no velodyne packets are received
   diagnostics_.update();
+  //ROS_INFO("diag timer callback pid : 0x%lx", pthread_self());
 }
 
 } // namespace velodyne_driver

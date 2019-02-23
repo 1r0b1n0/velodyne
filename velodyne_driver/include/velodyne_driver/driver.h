@@ -23,6 +23,7 @@
 
 #include <velodyne_driver/input.h>
 #include <velodyne_driver/VelodyneNodeConfig.h>
+#include <boost/thread/mutex.hpp>
 
 namespace velodyne_driver
 {
@@ -69,6 +70,7 @@ private:
   double diag_min_freq_;
   double diag_max_freq_;
   boost::shared_ptr<diagnostic_updater::TopicDiagnostic> diag_topic_;
+  boost::mutex diag_mutex_;
 };
 
 } // namespace velodyne_driver
